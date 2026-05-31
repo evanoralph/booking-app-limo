@@ -1,0 +1,39 @@
+@import "tailwindcss";
+@import "react-day-picker/style.css";
+@import "react-phone-number-input/style.css";
+
+@theme {
+  --color-gold: #d4af37;
+  --color-gold-dark: #b8962e;
+  --color-gold-light: #f5e6a3;
+  --color-text-primary: #333333;
+  --color-text-muted: #666666;
+  --color-border: #e0e0e0;
+  --color-background: #f8f8f8;
+  --radius-lg: 0.5rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  color: var(--color-text-primary);
+  background-color: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+}
+
+.phone-input .PhoneInputInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 0.875rem;
+  min-height: 2.5rem;
+}
+
+.phone-input .PhoneInputCountry {
+  margin-right: 0.5rem;
+}
