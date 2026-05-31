@@ -1,8 +1,7 @@
 import { useState } from 'react'
-import { AtSign, User } from 'lucide-react'
+import { AtSign, Hash, User } from 'lucide-react'
 import PhoneInput from 'react-phone-number-input'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { FloatingLabelInput } from '@/components/ui/floating-label-field'
 import { lookupPhone } from '@/lib/mockCustomerLookup'
 import { cn } from '@/lib/utils'
 
@@ -72,8 +71,9 @@ export function ContactSection({
       <div>
         <div
           className={cn(
-            'flex items-center rounded-md border bg-white px-3 phone-input',
-            errors.phone ? 'border-red-500' : 'border-border'
+            'relative flex min-h-11 items-center rounded-md border bg-white px-3',
+            errors.phone ? 'border-red-500' : 'border-border',
+            'focus-within:border-gold focus-within:ring-1 focus-within:ring-gold/30'
           )}
         >
           <PhoneInput
@@ -86,12 +86,13 @@ export function ContactSection({
             }}
             onBlur={handlePhoneBlur}
             placeholder="Enter phone number"
+            className="phone-input w-full"
           />
         </div>
         {lookingUp && (
-          <p className="text-xs text-text-muted mt-1">Checking phone number...</p>
+          <p className="mt-1 text-xs text-text-muted">Checking phone number...</p>
         )}
-        {errors.phone && <p className="text-xs text-red-500 mt-1">{errors.phone}</p>}
+        {errors.phone && <p className="mt-1 text-xs text-red-500">{errors.phone}</p>}
       </div>
 
       {showExtraFields && (
@@ -101,44 +102,37 @@ export function ContactSection({
             information.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <Input
-                placeholder="First Name"
-                value={firstName}
-                onChange={(e) => onFirstNameChange(e.target.value)}
-                icon={<User className="h-4 w-4" />}
-                className={errors.firstName ? 'border-red-500' : ''}
-              />
-              {errors.firstName && (
-                <p className="text-xs text-red-500 mt-1">{errors.firstName}</p>
-              )}
-            </div>
-            <div>
-              <Input
-                placeholder="Last Name"
-                value={lastName}
-                onChange={(e) => onLastNameChange(e.target.value)}
-                icon={<User className="h-4 w-4" />}
-                className={errors.lastName ? 'border-red-500' : ''}
-              />
-              {errors.lastName && (
-                <p className="text-xs text-red-500 mt-1">{errors.lastName}</p>
-              )}
-            </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <FloatingLabelInput
+              label="First name"
+              placeholder="First name"
+              value={firstName}
+              onChange={(e) => onFirstNameChange(e.target.value)}
+              icon={<User className="h-4 w-4" />}
+              activeIcon
+              error={errors.firstName}
+            />
+            <FloatingLabelInput
+              label="Last name"
+              placeholder="Last name"
+              value={lastName}
+              onChange={(e) => onLastNameChange(e.target.value)}
+              icon={<User className="h-4 w-4" />}
+              activeIcon
+              error={errors.lastName}
+            />
           </div>
 
-          <div>
-            <Input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => onEmailChange(e.target.value)}
-              icon={<AtSign className="h-4 w-4" />}
-              className={errors.email ? 'border-red-500' : ''}
-            />
-            {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
-          </div>
+          <FloatingLabelInput
+            label="Email"
+            type="email"
+            placeholder="name@example.com"
+            value={email}
+            onChange={(e) => onEmailChange(e.target.value)}
+            icon={<AtSign className="h-4 w-4" />}
+            activeIcon
+            error={errors.email}
+          />
         </>
       )}
 
@@ -162,23 +156,26 @@ export function PassengersField({
 }) {
   return (
     <div>
-      <Label className="text-base mb-3 block">
+      <p className="mb-3 text-base font-semibold text-text-primary">
         How many passengers are expected for the trip?
-      </Label>
-      <Input
-        type="number"
-        min={1}
-        max={20}
-        placeholder="# Passengers"
-        value={value || ''}
-        onChange={(e) => {
-          const num = parseInt(e.target.value, 10)
-          console.log('[PassengersField] Passengers changed:', num)
-          onChange(isNaN(num) ? 0 : num)
-        }}
-        className={cn('max-w-[200px]', error && 'border-red-500')}
-      />
-      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      </p>
+      <div className="max-w-[160px]">
+        <FloatingLabelInput
+          label="# Passengers"
+          type="number"
+          min={1}
+          max={20}
+          placeholder=""
+          value={value || ''}
+          onChange={(e) => {
+            const num = parseInt(e.target.value, 10)
+            console.log('[PassengersField] Passengers changed:', num)
+            onChange(isNaN(num) ? 0 : num)
+          }}
+          icon={<Hash className="h-4 w-4" />}
+          error={error}
+        />
+      </div>
     </div>
   )
 }

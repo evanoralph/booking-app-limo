@@ -25,6 +25,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.phone-input {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
 .phone-input .PhoneInputInput {
   flex: 1;
   border: none;

@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react'
 import { Autocomplete } from '@react-google-maps/api'
-import { MapPin } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { ChevronDown, MapPin } from 'lucide-react'
+import { FloatingLabelField } from '@/components/ui/floating-label-field'
 import { useGoogleMaps } from '@/components/maps/GoogleMapsProvider'
 import type { LocationData } from '@/types/booking'
 
@@ -10,6 +10,7 @@ interface PlaceAutocompleteInputProps {
   onChange: (value: string) => void
   onPlaceSelect: (location: LocationData) => void
   placeholder?: string
+  label?: string
   id?: string
   error?: string
   types?: string[]
@@ -20,6 +21,7 @@ export function PlaceAutocompleteInput({
   onChange,
   onPlaceSelect,
   placeholder = 'Search for a location',
+  label = 'Location',
   id,
   error,
   types,
@@ -52,61 +54,54 @@ export function PlaceAutocompleteInput({
     onPlaceSelect(location)
   }
 
-  const inputClasses = cn(
-    'flex h-11 w-full rounded-md border bg-white pl-10 pr-3 py-2 text-sm placeholder:text-text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold',
-    error ? 'border-red-500' : 'border-border'
+  const inputClasses =
+    'h-9 w-full border-0 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-muted'
+
+  const fieldContent = (
+    <FloatingLabelField
+      label={label}
+      icon={<MapPin className="h-4 w-4" />}
+      suffix={<ChevronDown className="h-4 w-4" />}
+      error={error}
+      activeIcon
+    >
+      <input
+        ref={inputRef}
+        id={id}
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={inputClasses}
+      />
+    </FloatingLabelField>
   )
 
   if (!isLoaded) {
     return (
-      <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
-          <MapPin className="h-4 w-4" />
-        </span>
-        <input
-          ref={inputRef}
-          id={id}
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          className={inputClasses}
-        />
+      <div>
+        {fieldContent}
         {!import.meta.env.VITE_GOOGLE_MAPS_API_KEY && (
-          <p className="text-xs text-amber-600 mt-1">Add VITE_GOOGLE_MAPS_API_KEY to enable autocomplete</p>
+          <p className="mt-1 text-xs text-amber-600">
+            Add VITE_GOOGLE_MAPS_API_KEY to enable autocomplete
+          </p>
         )}
       </div>
     )
   }
 
   return (
-    <div>
-      <Autocomplete
-        onLoad={(autocomplete) => {
-          autocompleteRef.current = autocomplete
-          autocomplete.setComponentRestrictions({ country: 'us' })
-          if (types) {
-            autocomplete.setTypes(types)
-          }
-        }}
-        onPlaceChanged={handlePlaceChanged}
-      >
-        <div className="relative">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none">
-            <MapPin className="h-4 w-4" />
-          </span>
-          <input
-            ref={inputRef}
-            id={id}
-            type="text"
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            className={inputClasses}
-          />
-        </div>
-      </Autocomplete>
-      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
-    </div>
+    <Autocomplete
+      onLoad={(autocomplete) => {
+        autocompleteRef.current = autocomplete
+        autocomplete.setComponentRestrictions({ country: 'us' })
+        if (types) {
+          autocomplete.setTypes(types)
+        }
+      }}
+      onPlaceChanged={handlePlaceChanged}
+    >
+      <div>{fieldContent}</div>
+    </Autocomplete>
   )
 }

@@ -1,9 +1,7 @@
 import { format } from 'date-fns'
 import { CalendarIcon, Clock } from 'lucide-react'
-import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { FloatingLabelField } from '@/components/ui/floating-label-field'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { formatDateDisplay } from '@/lib/validation'
@@ -29,22 +27,21 @@ export function DateTimeFields({
   today.setHours(0, 0, 0, 0)
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+    <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
       <div>
         <Popover>
           <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              className={cn(
-                'w-full justify-start text-left font-normal h-11 pl-10 relative',
-                !date && 'text-text-muted',
-                dateError && 'border-red-500'
-              )}
-            >
-              <CalendarIcon className="absolute left-3 h-4 w-4 text-text-muted" />
-              {date ? formatDateDisplay(date) : 'Pick a date'}
-            </Button>
+            <button type="button" className="w-full text-left">
+              <FloatingLabelField
+                label="Date"
+                icon={<CalendarIcon className="h-4 w-4" />}
+                error={dateError}
+              >
+                <span className={cn('text-sm', !date && 'text-text-muted')}>
+                  {date ? formatDateDisplay(date) : 'Select date'}
+                </span>
+              </FloatingLabelField>
+            </button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
             <Calendar
@@ -60,28 +57,44 @@ export function DateTimeFields({
             />
           </PopoverContent>
         </Popover>
-        {dateError && <p className="text-xs text-red-500 mt-1">{dateError}</p>}
       </div>
 
       <div>
-        <Input
-          type="time"
-          value={time}
-          onChange={(e) => {
-            console.log('[DateTimeFields] Time selected:', e.target.value)
-            onTimeChange(e.target.value)
-          }}
-          icon={<Clock className="h-4 w-4" />}
-          className={timeError ? 'border-red-500' : ''}
-        />
-        {timeError && <p className="text-xs text-red-500 mt-1">{timeError}</p>}
+        <Popover>
+          <PopoverTrigger asChild>
+            <button type="button" className="w-full text-left">
+              <FloatingLabelField
+                label="Time"
+                icon={<Clock className="h-4 w-4" />}
+                error={timeError}
+              >
+                <span className={cn('text-sm', !time && 'text-text-muted')}>
+                  {time ? formatTimeForDisplay(time) : 'Select time'}
+                </span>
+              </FloatingLabelField>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-3" align="start">
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => {
+                console.log('[DateTimeFields] Time selected:', e.target.value)
+                onTimeChange(e.target.value)
+              }}
+              className="rounded-md border border-border px-3 py-2 text-sm outline-none focus:border-gold focus:ring-1 focus:ring-gold/30"
+            />
+          </PopoverContent>
+        </Popover>
       </div>
     </div>
   )
 }
 
 export function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <Label className="text-base mb-3 block">{children}</Label>
+  return (
+    <h2 className="mb-3 text-base font-semibold text-text-primary">{children}</h2>
+  )
 }
 
 export function formatTimeForDisplay(time24: string): string {

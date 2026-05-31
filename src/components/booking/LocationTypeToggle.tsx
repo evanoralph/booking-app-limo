@@ -13,25 +13,40 @@ export function LocationTypeToggle({ value, onChange }: LocationTypeToggleProps)
   ]
 
   return (
-    <div className="flex gap-2 mb-2">
-      {options.map((opt) => (
-        <button
-          key={opt.id}
-          type="button"
-          onClick={() => {
-            console.log('[LocationTypeToggle] Selected:', opt.id)
-            onChange(opt.id)
-          }}
-          className={cn(
-            'px-4 h-9 rounded-md border text-xs font-medium transition-colors cursor-pointer',
-            value === opt.id
-              ? 'border-gold text-gold bg-gold-light/30'
-              : 'border-border text-text-muted hover:border-gray-300'
-          )}
-        >
-          {opt.label}
-        </button>
-      ))}
+    <div
+      role="radiogroup"
+      aria-label="Location type"
+      className="mb-4 inline-flex"
+    >
+      {options.map((opt, index) => {
+        const isSelected = value === opt.id
+        const isFirst = index === 0
+        const isLast = index === options.length - 1
+
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            role="radio"
+            aria-checked={isSelected}
+            onClick={() => {
+              console.log('[LocationTypeToggle] Selected:', opt.id)
+              onChange(opt.id)
+            }}
+            className={cn(
+              'flex h-7 cursor-pointer items-center justify-center border px-4 text-xs font-medium transition-colors',
+              isFirst && 'rounded-l-lg',
+              isLast && 'rounded-r-lg',
+              !isFirst && '-ml-px',
+              isSelected
+                ? 'relative z-10 border-gold bg-gold-light/40 text-gold'
+                : 'border-border bg-white text-text-muted hover:bg-gray-50'
+            )}
+          >
+            {opt.label}
+          </button>
+        )
+      })}
     </div>
   )
 }

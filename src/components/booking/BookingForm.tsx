@@ -80,7 +80,7 @@ export function BookingForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-6">
+    <form onSubmit={handleSubmit(onSubmit, onError)} className="space-y-8">
       <Controller
         name="tripType"
         control={control}
@@ -146,7 +146,7 @@ export function BookingForm() {
           )}
         />
 
-        <div className="mt-3">
+        <div className="mt-2">
           <Controller
             name="stops"
             control={control}
@@ -214,7 +214,7 @@ export function BookingForm() {
             name="hours"
             control={control}
             render={({ field }) => (
-              <div>
+              <div className="max-w-[200px]">
                 <Select
                   value={field.value?.toString() ?? ''}
                   onValueChange={(v) => {
@@ -222,7 +222,7 @@ export function BookingForm() {
                     field.onChange(parseInt(v, 10))
                   }}
                 >
-                  <SelectTrigger className="max-w-[200px]">
+                  <SelectTrigger className="h-11 border-border">
                     <SelectValue placeholder="Select hours" />
                   </SelectTrigger>
                   <SelectContent>
@@ -241,14 +241,6 @@ export function BookingForm() {
           />
         </section>
       )}
-
-      <RouteMap
-        pickup={pickupLocation}
-        dropoff={tripType === 'one-way' ? dropoffLocation : null}
-        stops={stops}
-        className="w-full"
-        height="240px"
-      />
 
       <section>
         <SectionLabel>Contact Information</SectionLabel>
@@ -321,7 +313,15 @@ export function BookingForm() {
         )}
       />
 
-      <Button type="submit" className="w-full" size="lg">
+      <RouteMap
+        pickup={pickupLocation}
+        dropoff={tripType === 'one-way' ? dropoffLocation : null}
+        stops={stops}
+        className="w-full rounded-md overflow-hidden border border-border"
+        height="200px"
+      />
+
+      <Button type="submit" className="w-full uppercase tracking-wide" size="lg">
         Continue
       </Button>
     </form>
