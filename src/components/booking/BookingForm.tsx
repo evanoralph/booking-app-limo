@@ -153,16 +153,21 @@ export function BookingForm() {
             render={({ field }) => (
               <StopsList
                 stops={field.value}
-                onAddStop={() => field.onChange([...field.value, createEmptyStop()])}
-                onRemoveStop={(index) =>
+                onAddStop={() => {
+                  console.log('[BookingForm] Stop added — clearing direct route until stop location is set')
+                  field.onChange([...field.value, createEmptyStop()])
+                }}
+                onRemoveStop={(index) => {
+                  console.log('[BookingForm] Stop removed at index', index, '— route will refresh')
                   field.onChange(field.value.filter((_, i) => i !== index))
-                }
+                }}
                 onStopChange={(index, address) => {
                   const updated = [...field.value]
                   updated[index] = { ...updated[index], address }
                   field.onChange(updated)
                 }}
                 onStopSelect={(index, location) => {
+                  console.log('[BookingForm] Stop selected at index', index, ':', location.address)
                   const updated = [...field.value]
                   updated[index] = location
                   field.onChange(updated)
@@ -240,7 +245,7 @@ export function BookingForm() {
       <RouteMap
         pickup={pickupLocation}
         dropoff={tripType === 'one-way' ? dropoffLocation : null}
-        stops={stops.filter((s) => s.lat !== 0)}
+        stops={stops}
         className="w-full"
         height="240px"
       />

@@ -97,7 +97,7 @@ export function ConfirmationPage() {
         <RouteMap
           pickup={formData.pickupLocation}
           dropoff={formData.tripType === 'one-way' ? formData.dropoffLocation : null}
-          stops={formData.stops.filter((s) => s.lat !== 0)}
+          stops={formData.stops}
           height="200px"
         />
 

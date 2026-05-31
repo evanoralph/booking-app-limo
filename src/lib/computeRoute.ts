@@ -36,6 +36,22 @@ export function buildRouteWaypoints(
   return points
 }
 
+/** True when stops exist but at least one has no selected location yet */
+export function hasPendingStops(stops: LocationData[]): boolean {
+  return stops.some((stop) => !isValidLocation(stop))
+}
+
+/** Stable key for route recalculation when locations change */
+export function getRouteSignature(
+  pickup: LocationData | null,
+  stops: LocationData[],
+  dropoff: LocationData | null
+): string {
+  return buildRouteWaypoints(pickup, stops, dropoff)
+    .map((loc) => `${loc.lat.toFixed(6)},${loc.lng.toFixed(6)}`)
+    .join('|')
+}
+
 function toWaypoint(loc: LocationData): LatLngWaypoint {
   return {
     location: {
@@ -113,15 +129,26 @@ export async function computeRoutePath(
     travelMode: 'DRIVE',
     routingPreference: 'TRAFFIC_AWARE',
     computeAlternativeRoutes: false,
+    optimizeWaypointOrder: false,
     languageCode: 'en-US',
     units: 'IMPERIAL',
   }
 
   if (intermediates.length > 0) {
-    body.intermediates = intermediates
+    body.intermediates = intermediates.map((waypoint) => ({
+      ...waypoint,
+      via: false,
+    }))
   }
 
-  console.log('[computeRoute] Fetching route with', waypoints.length, 'waypoints')
+  const intermediateCount = Math.max(0, waypoints.length - 2)
+  console.log(
+    '[computeRoute] Fetching route with',
+    waypoints.length,
+    'waypoints,',
+    intermediateCount,
+    'intermediate stop(s)'
+  )
 
   const response = await fetch(ROUTES_API_URL, {
     method: 'POST',

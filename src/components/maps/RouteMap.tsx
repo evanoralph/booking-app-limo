@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { GoogleMap, Marker, Polyline } from '@react-google-maps/api'
+import { GoogleMap, Marker } from '@react-google-maps/api'
 import { useGoogleMaps } from '@/components/maps/GoogleMapsProvider'
-import { computeRoutePath } from '@/lib/computeRoute'
+import {
+  buildRouteWaypoints,
+  computeRoutePath,
+  getRouteSignature,
+  hasPendingStops,
+} from '@/lib/computeRoute'
 import type { LocationData } from '@/types/booking'
 
 interface RouteMapProps {
@@ -37,20 +42,40 @@ export function RouteMap({
 }: RouteMapProps) {
   const { isLoaded } = useGoogleMaps()
   const mapRef = useRef<google.maps.Map | null>(null)
+  const polylineRef = useRef<google.maps.Polyline | null>(null)
+  const routeRequestIdRef = useRef(0)
+  const [mapReady, setMapReady] = useState(false)
   const [routePath, setRoutePath] = useState<google.maps.LatLngLiteral[]>([])
+  const [loadedRouteSignature, setLoadedRouteSignature] = useState('')
+
+  const routeSignature = useMemo(
+    () => getRouteSignature(pickup, stops, dropoff),
+    [pickup, stops, dropoff]
+  )
+
+  const pendingStops = useMemo(() => hasPendingStops(stops), [stops])
+
+  // One route only: pickup → valid stops → dropoff (hidden while a stop is incomplete)
+  const visibleRoutePath = useMemo(() => {
+    if (pendingStops) return []
+    if (!routeSignature || loadedRouteSignature !== routeSignature) return []
+    return routePath
+  }, [pendingStops, routeSignature, loadedRouteSignature, routePath])
 
   const markers = useMemo(() => {
     const list: { position: google.maps.LatLngLiteral; label: string; color: string }[] = []
     if (pickup && pickup.lat !== 0) {
       list.push({ position: { lat: pickup.lat, lng: pickup.lng }, label: 'P', color: '#22c55e' })
     }
-    stops.forEach((stop, i) => {
+    let stopLabelIndex = 0
+    stops.forEach((stop) => {
       if (stop.lat === 0) return
       list.push({
         position: { lat: stop.lat, lng: stop.lng },
-        label: String.fromCharCode(65 + i),
+        label: String.fromCharCode(65 + stopLabelIndex),
         color: '#d4af37',
       })
+      stopLabelIndex++
     })
     if (dropoff && dropoff.lat !== 0) {
       list.push({ position: { lat: dropoff.lat, lng: dropoff.lng }, label: 'D', color: '#ef4444' })
@@ -65,9 +90,38 @@ export function RouteMap({
     return { lat: avgLat, lng: avgLng }
   }, [markers])
 
+  const clearRoutePolyline = useCallback(() => {
+    if (polylineRef.current) {
+      polylineRef.current.setMap(null)
+      polylineRef.current = null
+      console.log('[RouteMap] Removed previous polyline from map')
+    }
+  }, [])
+
+  // Single imperative polyline — avoids duplicate lines from React Polyline not unmounting
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+
+    clearRoutePolyline()
+
+    if (visibleRoutePath.length < 2) return
+
+    polylineRef.current = new google.maps.Polyline({
+      path: visibleRoutePath,
+      map,
+      ...routePolylineOptions,
+    })
+    console.log('[RouteMap] Drew one-way polyline with', visibleRoutePath.length, 'points')
+
+    return clearRoutePolyline
+  }, [visibleRoutePath, mapReady, clearRoutePolyline])
+
+  useEffect(() => () => clearRoutePolyline(), [clearRoutePolyline])
+
   const fitMapBounds = useCallback(
     (map: google.maps.Map) => {
-      if (markers.length === 0 && routePath.length === 0) {
+      if (markers.length === 0 && visibleRoutePath.length === 0) {
         map.setCenter(defaultCenter)
         map.setZoom(12)
         return
@@ -75,39 +129,83 @@ export function RouteMap({
 
       const bounds = new google.maps.LatLngBounds()
       markers.forEach((m) => bounds.extend(m.position))
-      routePath.forEach((p) => bounds.extend(p))
+      visibleRoutePath.forEach((p) => bounds.extend(p))
 
-      if (markers.length < 2 && routePath.length === 0) {
+      if (markers.length < 2 && visibleRoutePath.length === 0) {
         map.setCenter(markers[0]?.position ?? defaultCenter)
         map.setZoom(14)
         return
       }
 
       map.fitBounds(bounds, 48)
-      console.log('[RouteMap] Map bounds updated with', markers.length, 'markers and', routePath.length, 'route points')
+      console.log(
+        '[RouteMap] Map bounds updated —',
+        markers.length,
+        'markers,',
+        visibleRoutePath.length,
+        'route points'
+      )
     },
-    [markers, routePath]
+    [markers, visibleRoutePath]
   )
 
   useEffect(() => {
+    if (pendingStops) {
+      console.log('[RouteMap] Incomplete stop — hiding route until all stops are set')
+      return
+    }
+
+    const currentWaypoints = buildRouteWaypoints(pickup, stops, dropoff)
+
+    if (currentWaypoints.length < 2) {
+      console.log('[RouteMap] Need pickup + destination (or stop) to show route')
+      setRoutePath([])
+      setLoadedRouteSignature('')
+      return
+    }
+
+    if (loadedRouteSignature === routeSignature && routePath.length > 0) {
+      console.log('[RouteMap] Route already matches current locations')
+      return
+    }
+
+    if (loadedRouteSignature !== routeSignature) {
+      console.log('[RouteMap] Locations changed — clearing previous route')
+      setRoutePath([])
+      setLoadedRouteSignature('')
+      clearRoutePolyline()
+    }
+
     const controller = new AbortController()
+    const requestId = ++routeRequestIdRef.current
+    const signatureForRequest = routeSignature
+
+    console.log('[RouteMap] Fetching one-way route (pickup → stops → destination):', signatureForRequest)
 
     computeRoutePath(pickup, stops, dropoff, controller.signal)
       .then((path) => {
-        if (!controller.signal.aborted) {
+        if (controller.signal.aborted || requestId !== routeRequestIdRef.current) return
+
+        if (path.length > 0) {
+          console.log('[RouteMap] One-way route displayed with', path.length, 'points')
           setRoutePath(path)
+          setLoadedRouteSignature(signatureForRequest)
+        } else {
+          console.warn('[RouteMap] Routes API returned no path')
+          setRoutePath([])
+          setLoadedRouteSignature('')
         }
       })
       .catch((err) => {
         if (err instanceof DOMException && err.name === 'AbortError') return
-        console.error('[RouteMap] Failed to compute route:', err)
-        if (!controller.signal.aborted) {
-          setRoutePath([])
-        }
+        if (requestId !== routeRequestIdRef.current) return
+        console.error('[RouteMap] Failed to fetch one-way route:', err)
+        setRoutePath([])
+        setLoadedRouteSignature('')
       })
 
     return () => controller.abort()
-  }, [pickup, dropoff, stops])
+  }, [routeSignature, pendingStops, clearRoutePolyline])
 
   useEffect(() => {
     const map = mapRef.current
@@ -119,6 +217,7 @@ export function RouteMap({
   const onLoad = useCallback(
     (map: google.maps.Map) => {
       mapRef.current = map
+      setMapReady(true)
       fitMapBounds(map)
     },
     [fitMapBounds]
@@ -144,9 +243,6 @@ export function RouteMap({
         options={mapOptions}
         onLoad={onLoad}
       >
-        {routePath.length > 0 && (
-          <Polyline path={routePath} options={routePolylineOptions} />
-        )}
         {markers.map((marker, index) => (
           <Marker
             key={`${marker.position.lat}-${marker.position.lng}-${index}`}
